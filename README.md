@@ -23,12 +23,6 @@ conda activate gpa-opt
 pip install -r requirements.txt
 ```
 
-如果使用本机已有环境：
-
-```powershell
-conda activate C:\Users\LJH\anaconda3\envs\gpa-opt
-```
-
 ## 运行示例
 
 快速启发式：
