@@ -24,7 +24,6 @@ SDP = 0.5
 
 import itertools
 import math
-import argparse
 from collections import Counter, defaultdict
 import pulp
 
@@ -52,7 +51,7 @@ GROUPS = [
     {'name': 'G3', 'size': 50,  'pools': ['0a', '0b', '2', '5', '6'],    'nc': 28},
 ]
 
-SDP = 1.0
+SDP = 1.0  # 精确binning: 整数步长, 保证阈值判断无误差
 
 
 def rnd(x):
@@ -220,7 +219,7 @@ def build_group_joint_vars(gid, prob):
     }
 
 
-def solve(threshold=3.5, time_limit=600, gap_rel=None, threads=None, max_nodes=None, verbose=True):
+def solve(threshold=3.5, time_limit=600, verbose=True):
     prob = pulp.LpProblem("ThreeMajor", pulp.LpMaximize)
 
     # ── w 变量: per-combo ──
@@ -380,14 +379,7 @@ def solve(threshold=3.5, time_limit=600, gap_rel=None, threads=None, max_nodes=N
         print(f"变量: w={nw}  y={ny}  总计={nw + ny}  约束={len(prob.constraints)}")
         print(f"求解中 (threshold={threshold}, time_limit={time_limit}s)...")
 
-    solver = pulp.PULP_CBC_CMD(
-        msg=verbose,
-        timeLimit=time_limit,
-        gapRel=gap_rel,
-        threads=threads,
-        maxNodes=max_nodes,
-    )
-    prob.solve(solver)
+    prob.solve(pulp.HiGHS(msg=verbose, time_limit=time_limit))
 
     st = pulp.LpStatus[prob.status]
     obj_val = pulp.value(prob.objective)
@@ -449,15 +441,6 @@ def show(r):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--threshold", type=float, default=3.5)
-    parser.add_argument("--time-limit", type=int, default=600)
-    parser.add_argument("--gap-rel", type=float, default=None, help="relative MIP gap for early stopping, e.g. 0.01")
-    parser.add_argument("--threads", type=int, default=None)
-    parser.add_argument("--max-nodes", type=int, default=None)
-    parser.add_argument("--quiet", action="store_true")
-    args = parser.parse_args()
-
     print("=" * 60)
     print("池槽位 + 组合数")
     print("=" * 60)
@@ -467,12 +450,5 @@ if __name__ == '__main__':
               f"总槽位={sum(sl.values())}  combos={len(pool_combos[pid])}  "
               f"sums={len(pool_sums[pid])}")
 
-    r = solve(
-        threshold=args.threshold,
-        time_limit=args.time_limit,
-        gap_rel=args.gap_rel,
-        threads=args.threads,
-        max_nodes=args.max_nodes,
-        verbose=not args.quiet,
-    )
+    r = solve(threshold=3.5, time_limit=600, verbose=True)
     show(r)
